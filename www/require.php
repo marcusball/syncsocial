@@ -1,4 +1,6 @@
 <?php
+$pageStartTime = microtime(true);
+
 /** Functions and definitions that will be included for every page **/
 require 'config.php';
 
@@ -9,6 +11,10 @@ set_include_path(get_include_path() . PATH_SEPARATOR . $path); //Adds the './inc
 
 require_once 'databasecontroller.php';
 
+function getStartTime(){
+	global $pageStartTime;
+	return $pageStartTime;
+}
 
 function logError($script,$line,$description, $error){
 	$data = "File:        $script (Line: $line)\nDescription: ".$description."\nError:       ".$error."\nTime:        ".date('l, j F Y, \a\t g:i:s:u A')."\n--------------------------------\n";
