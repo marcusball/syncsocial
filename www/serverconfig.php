@@ -1,7 +1,7 @@
 <?php
 
-define('SITE_LABEL','weedsync');
-define('SITE_NAME','Weed Sync');
+define('SITE_LABEL','syncsocial');
+define('SITE_NAME','syncsocial');
 define('SITE_DOMAIN','www.dogesite.net');
 define('DB_PDO_NAME','mysql'); // The PDO name for your database server
 define('DB_NAME', 'sitedb');
