@@ -12,6 +12,7 @@ class IndexPage extends PageObject{
 	
 	public function createBody(){?>
 		<span class="debug"></span>
+		<div class="box"></div>
 	<?php
 	}
 }

@@ -34,18 +34,52 @@
 	this.updateTime = function updateTime(){
 		//console.log(this.ntpResults);
 		if('roundTripDelay' in this.ntpResults){
+			date = (new Date((new Date()).valueOf() + this.ntpResults.offset));
 			$('.debug').html(
 				"NTP delay:" + this.ntpResults.roundTripDelay + 
 				"<br />NTP offset:" + this.ntpResults.offset +
-				"<br />corrected: " + (new Date((new Date()).valueOf() + this.ntpResults.offset))
+				"<br />corrected: " + date + 
+				"<br />number: " + this.makeBetterNumber(this.hash(date.valueOf()))
 			);
+			
+			$('.box').css({
+				'width':'100px',
+				'height':'100px',
+				'background-color':this.createColor(date.valueOf())
+			}).html(this.createColor(date.valueOf()));
 		}
 	}
+	
+	this.makeBetterNumber = function makeBetterNumber(number){
+		number = number / 100000000;
+		return (number) - Math.floor(number);
+	}
+	
+	this.hash = function hash(a){
+		a = (a+0x7ed55d16) + (a<<12);
+		a = (a^0xc761c23c) ^ (a>>19);
+		a = (a+0x165667b1) + (a<<5);
+		a = (a+0xd3a2646c) ^ (a<<9);
+		a = (a+0xfd7046c5) + (a<<3);
+		a = (a^0xb55a4f09) ^ (a>>16);
+		if( a < 0 ) a = 0xffffffff + a;
+		return a;
+	}
+	
+	this.createColor = function createColor(seed){
+		var letters = '0123456789ABCDEF'.split('');
+		var color = '#';
+		for (var i = 0; i < 6; i++ ) {
+			color += letters[Math.floor(this.makeBetterNumber(this.hash(seed * i)) * 16)];
+		}
+		return color;
+	}
+	
 	$(document).ready(function(){
 		var clientTime = new Date();
 
 		
 		setInterval("performNTP()",1000);
-		setInterval("updateTime()",10);
+		setInterval("updateTime()",100);
 	});
 })();
