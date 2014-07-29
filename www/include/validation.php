@@ -42,7 +42,7 @@ class Validator{
 	 */
 	public static function validName($name, $maxLen, $minLen = 3,$clean = true){
 		//$invalidChars = '/[\u0000-\u0020\!\"\#\$\%\&\(\)\*\+\,0-9:;\<\=\>\?\@\[\\\]\^_\`\{\|\}\~\u00A0-\u00BF]/u';
-		$validName = '~^(?:[\p{L}\p{Mn}\p{Pd}\']+\s?)+$~u';
+		$validName = '~^(?:[\p{L}\p{Mn}\p{Pd}\']++\s?)++$~u'; //don't forget to double check with the regex used in cleaner.php
 		if(preg_match($validName,$name) !== 1){
 			debug('name does not match acceptable pattern');
 			return false;

@@ -1,3 +1,9 @@
 RewriteEngine On
+DirectoryIndex index.php
 
-RewriteRule ^([^/\.]+)\.php$ index.php?_request_page=$1 [QSA]
+RewriteRule ^server/.*$ index.php
+RewriteRule ^page-(content|functions|include)/.*$ index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+
