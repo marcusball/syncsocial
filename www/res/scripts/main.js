@@ -75,11 +75,35 @@
 		return color;
 	}
 	
+	this.hookForm = function hookForm(){
+		$('form.create_event').submit(function(){
+			if($(this).hasClass('event_active')){
+				return;
+			}
+			$.ajax({
+				type:'post',
+				url:'index.php',
+				data: $(this).serialize(),
+				success: function(data,textStatus,jqXHR){
+					if(data.status == 'much-success'){
+						$(this).addClass('event_active');
+						alert('it begins');
+					}
+					else if(data.status == 'very-fail'){
+						alert('something bad happened');
+					}
+				}
+			});
+		});
+	}
+	
 	$(document).ready(function(){
 		var clientTime = new Date();
 
 		
 		setInterval("performNTP()",1000);
 		setInterval("updateTime()",100);
+		
+		hookForm();
 	});
 })();

@@ -11,6 +11,6 @@ define('DB_HOST', 'localhost');
 define('DB_CHARSET', 'utf8');
 define('DB_COLLATE', '');
 
-define('LOG_PATH_ERRORS','errors.log');
-
+define('SERVER_LOG_PATH_ERRORS','./server/errors.log');
+define('SERVER_LOG_PATH_WARNINGS','./server/warnings.log');
 ?>

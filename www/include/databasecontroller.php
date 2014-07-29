@@ -32,6 +32,27 @@ class DBController{
 		return $this->sqlCon->setAttribute($attribute,$value);
 	}
 	
+	public function getSQLTimeStamp($time = null){
+		if($time == null) $time = time();
+		return date('Y-m-d H:i:s',$time);
+	}
+	
 	/** Place your database access methods here! **/
+	public function createNewEvent($time,$ip){
+		try{
+			$eventCreateStatement = $this->sqlcon->prepare('INSERT INTO events (time, ip) VALUES (:time,:ip)');
+			$eventCreateStatement->bindParam(':time',$this->getSQLTimeStamp($time));
+			$eventCreateStatement->bindParam(':ip',$ip,PDO::PARAM_STR);
+			$eventCreateStatement->execute();
+			
+			if($eventCreateStatement->rowCount() > 0){
+				return true;
+			}
+		}
+		catch(PDOException $e){
+			logError('databasecontroller.php',__LINE__,'Unable to create new event!',$e->getMessage());
+		}
+		return false;
+	}
 }
 ?>

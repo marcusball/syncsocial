@@ -17,8 +17,15 @@ function getStartTime(){
 }
 
 function logError($script,$line,$description, $error){
-	$data = "File:        $script (Line: $line)\nDescription: ".$description."\nError:       ".$error."\nTime:        ".date('l, j F Y, \a\t g:i:s:u A')."\n--------------------------------\n";
-	file_put_contents(LOG_PATH_ERRORS, $data, FILE_APPEND);
+	//$data = "File:        $script (Line: $line)\nDescription: ".$description."\nError:       ".$error."\nTime:        ".date('l, j F Y, \a\t g:i:s:u A')."\n--------------------------------\n";
+	if($line !== null){
+		$script .= ':'.$line;
+	}
+	if($error !== null){
+		$error = '!{ '. $error . '}!';
+	}
+	$data = sprintf("[%s][%s][%s] (%s): %s %s\n",'error',date('D, j M Y, \a\t g:i:s A'),$_SERVER['REMOTE_ADDR'],$script,$description,$error);
+	file_put_contents(SERVER_LOG_PATH_ERRORS, $data, FILE_APPEND);
 }
 
 function debug($message){
