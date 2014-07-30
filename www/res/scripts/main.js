@@ -2,6 +2,12 @@
 
 (function(){
 	this.ntpResults = {};
+	this.eventTime = null;
+	this.timerActive = false;
+	this.eventId = 0;
+	this.eventCount = 0;
+	this.alertedEventId = 0;
+	
 	this.ntp = function ntp(t0, t1, t2, t3){
 		return{
 			roundTripDelay: (t3 - t0) - (t2 - t1),
@@ -35,11 +41,32 @@
 		//console.log(this.ntpResults);
 		if('roundTripDelay' in this.ntpResults){
 			date = (new Date((new Date()).valueOf() + this.ntpResults.offset));
+			
+			diff = null;
+			if(this.timerActive == true){
+				a = moment(date);
+				b = moment.unix(this.eventTime);
+				diff = b.diff(a,'seconds',true);
+				
+				if(diff <= 0){
+					this.timerActive = false;
+					this.eventTime = null;
+					
+					if(this.alertedEventId != this.eventId){
+						this.alertedEventId = this.eventId;
+						alert("DO STUFF"); 
+					}
+				}
+			}
+			
+			
 			$('.debug').html(
 				"NTP delay:" + this.ntpResults.roundTripDelay + 
 				"<br />NTP offset:" + this.ntpResults.offset +
 				"<br />corrected: " + date + 
-				"<br />number: " + this.makeBetterNumber(this.hash(date.valueOf()))
+				"<br />number: " + this.makeBetterNumber(this.hash(date.valueOf())) + 
+				((this.timerActive)?("<br />Countdown: " + diff):"") + 
+				"<br />count: " + this.eventCount
 			);
 			
 			$('.box').css({
@@ -47,6 +74,7 @@
 				'height':'100px',
 				'background-color':this.createColor(date.valueOf())
 			}).html(this.createColor(date.valueOf()));
+			
 		}
 	}
 	
@@ -76,17 +104,22 @@
 	}
 	
 	this.hookForm = function hookForm(){
-		$('form.create_event').submit(function(){
+		var parent = this;
+		$('form.event_create').submit(function(e){
+			e.preventDefault();
 			if($(this).hasClass('event_active')){
 				return;
 			}
 			$.ajax({
 				type:'post',
 				url:'index.php',
-				data: $(this).serialize(),
+				data: {'start':'oh yeah'},
+				dataType:'json',
 				success: function(data,textStatus,jqXHR){
 					if(data.status == 'much-success'){
 						$(this).addClass('event_active');
+						parent.timerActive = true;
+						parent.eventTime = data.time;
 						alert('it begins');
 					}
 					else if(data.status == 'very-fail'){
@@ -95,14 +128,62 @@
 				}
 			});
 		});
+		
+		$('form.event_join').submit(function(e){
+			alert('trying');
+			e.preventDefault();
+			if($(this).hasClass('has_joined')){
+				return;
+			}
+			$.ajax({
+				type:'post',
+				url:'index.php',
+				data: {'join':':D'},
+				dataType:'json',
+				success: function(data,textStatus,jqXHR){
+					console.log(data);
+					if(data.status == 'totes-joined'){
+						$(this).addClass('has_joined');
+					}
+				}
+			});
+		});
+	}
+	
+	this.pollForInfo = function pollForInfo(){
+		var parent = this;
+		$.ajax({
+			type:'post',
+			url:'index.php',
+			data: {'infoPoll':'yespls'},
+			dataType:'json',
+			success: function(data,textStatus,jqXHR){
+				if(data.active == true){
+					parent.eventTime = data.time;
+					parent.timerActive = true;
+					parent.eventId = data.id;
+					parent.eventCount = data.count;
+				}
+				else{
+					parent.timerActive = false;
+					parent.eventTime = null;
+					parent.eventId = 0;
+					parent.eventCount = 0;
+				}
+			}
+		});
 	}
 	
 	$(document).ready(function(){
 		var clientTime = new Date();
 
+		performNTP();
+		updateTime();
+		pollForInfo();
 		
-		setInterval("performNTP()",1000);
+		setInterval("performNTP()",5000);
 		setInterval("updateTime()",100);
+		setInterval("pollForInfo()",2000);
 		
 		hookForm();
 	});

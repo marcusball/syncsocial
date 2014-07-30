@@ -85,5 +85,22 @@ class CurrentUser extends User{
 		session_unset();
 		session_destroy();
 	}
+	
+	public function getIp(){
+		return $_SERVER['REMOTE_ADDR'];
+	}
+	
+	public function getGuestUid(){
+		if(!isset($_SESSION['GUEST_UID'])){
+			$guid = $this->dbCon->newGuest($this->getIp(),$_SERVER['HTTP_USER_AGENT']);
+			if($guid !== false){
+				$_SESSION['GUEST_UID'] = $guid;
+			}
+			else{
+				return 0;
+			}
+		}
+		return $_SESSION['GUEST_UID'];
+	}
 }
 ?>

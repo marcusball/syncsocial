@@ -22,6 +22,7 @@
 		</footer>
 
 		<script src="/res/scripts/jquery.min.js"></script>
+		<script src="/res/scripts/moment.js" type="text/javascript"></script>
 		<script src="/res/scripts/main.js" type="text/javascript"></script>
 		<script src="/res/scripts/foundation/foundation.min.js"></script>
 		<script>

@@ -1,7 +1,13 @@
 <?php
 require 'serverconfig.php';
 
-date_default_timezone_set('America/New_York');
+/****************************************************************/
+/** Event config details.                                      **/
+/****************************************************************/
+//The number of seconds after an event's countdown completes in which the event is still considered active
+define('EVENT_ACTIVE_EXPIRATION',15);
+
+
 
 define('SERVER_INI_FILE','server/config.ini');
 
@@ -9,7 +15,7 @@ define('SERVER_INI_FILE','server/config.ini');
 //Use the format "/path/to/file.php" => "/file/(?'option'\w+)"
 //In side of PageObject scripts, you'll be able to access the results using the arg('option') and issetArg('option) functions. 
 $REWRITE_RULES = array(
-	'test.php' => "/test/(?'num'\d+)"
+	//'test.php' => "/test/(?'num'\d+)"
 );
 
 /****************************************************************/

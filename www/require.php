@@ -17,7 +17,7 @@ set_include_path(get_include_path() . PATH_SEPARATOR . $path); //Adds the './inc
  */
 function init($initLight = false){
 	require_once 'databasecontroller.php';
-	//require_once 'currentuser.php';
+	require_once 'currentuser.php';
 	if(!$initLight){ //If we want to include everything. 
 		require_once 'output.php';
 		require_once 'pageobj.php';
@@ -26,6 +26,8 @@ function init($initLight = false){
 		//require_once 'user.php';
 		require_once 'formkeys.php';
 		require_once 'password.php';
+		
+		require_once 'event.php';
 		
 		/* 
 		 * cleaner.php requires HTMLPurifier. 
@@ -129,7 +131,6 @@ function getDatabaseController(){
  * Access method for receiving a reference to the CurrentUser object. 
  */
 function getCurrentUser(){
-	return null;
 	global $USER;
 	if($USER !== null){
 		return $USER;
@@ -160,7 +161,7 @@ function parsePath($withQueryArgs = true){
 	$uri = '/' . trim( str_replace( $uri, '', $_SERVER['REQUEST_URI'] ), '/' );
 	$uri = urldecode( $uri );
 	if(!$withQueryArgs){
-		$matchVal = preg_match('#^(?\'path\'[^\?]*)(?:\?.*)?$#i',$path,$matches);
+		$matchVal = preg_match('#^(?\'path\'[^\?]*)(?:\?.*)?$#i',$uri,$matches);
 		if($matchVal !== 0 && $matchVal !== false){
 			return $matches['path'];
 		}
@@ -171,11 +172,21 @@ function parsePath($withQueryArgs = true){
 function cleanPath($path){
 	if($path == '/') return $path;
 	
-	$matchVal = preg_match('#^/?(?\'path\'[^\.]+)\.php(?:\?.*)?$#i',$path,$matches);
+	$matchVal = preg_match('#^/?(?:(?\'path\'.+)\.php)?(?:\?.*)?$#i',$path,$matches);
 	if($matchVal === 0 || $matchVal === false){
 		return false;
 	}
-	return $matches['path'];
+	
+	//If we get to here, we know the pattern matches
+	//If path is not set, then nothing exists between the first character ('/'), and the query string ('?...')
+	//So, if we have a path returned from the regex, then the url is something like "/xxxxx.php?ffffff"
+	//Otherwise the path is "/?ffffff". 
+	if(isset($matches['path'])){
+		return $matches['path'];
+	}
+	else{
+		return '/';
+	}
 }
 
 function getRewritePath($path){
@@ -201,7 +212,7 @@ init($INIT_LIGHT); //Import stuff
 
 /** Create an SQL connection **/
 $SQLCON = SQLConnect();
-//$USER = new CurrentUser(); //Keep these in global scope
+$USER = new CurrentUser(); //Keep these in global scope
 $FORMKEYMAN = null; //Keep these in global scope
 
 if($INIT_LIGHT === false){

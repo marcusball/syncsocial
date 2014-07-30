@@ -280,8 +280,8 @@ class DBController{
 	/***********************************************************/
 	public function createNewEvent($time,$ip){
 		try{
-			$eventCreateStatement = $this->sqlcon->prepare('INSERT INTO events (time, ip) VALUES (:time,:ip)');
-			$eventCreateStatement->bindParam(':time',$this->getSQLTimeStamp($time));
+			$eventCreateStatement = $this->sqlCon->prepare('INSERT INTO events (time, ip) VALUES (:time,:ip)');
+			$eventCreateStatement->bindValue(':time',$this->getSQLTimeStamp($time));
 			$eventCreateStatement->bindParam(':ip',$ip,PDO::PARAM_STR);
 			$eventCreateStatement->execute();
 			
@@ -290,9 +290,185 @@ class DBController{
 			}
 		}
 		catch(PDOException $e){
-			logError('databasecontroller.php',__LINE__,'Unable to create new event!',$e->getMessage());
+			logError('Unable to create new event!',$e->getMessage());
 		}
 		return false;
+	}
+	
+	/*
+	 * Gets events that are active, or were active within the past $maxSecondsPast.
+	 * Returns the event if it's still active (the countdown is still occurring), or it ended within the last $maxSecondsPast.
+	 * returns false if there is no active event, or if there was an error.
+	 */
+	public function getActiveEvent($maxSecondsPast = 5){
+		try{
+			$eventStatement = $this->sqlCon->prepare('
+				SELECT 
+						events.*, 
+						extract(EPOCH FROM (current_timestamp - events.time)::INTERVAL) AS diff
+					FROM events 
+					WHERE extract(EPOCH FROM (current_timestamp - events.time)::INTERVAL) <= :max
+			');
+			$eventStatement->bindParam(':max',$maxSecondsPast,PDO::PARAM_INT); 
+			$eventStatement->execute();
+			
+			$event = $eventStatement->fetchObject('Event');
+			if($event !== false){
+				return $event;
+			}
+		}
+		catch(PDOException $e){
+			logError('Unable to fetch active events!',$e->getMessage());
+		}
+		return false;
+	}
+	
+	public function guestJoinEvent($guid, $eid){
+		if($this->guestIsAttending($guid,$eid)){
+			return false;
+		}
+		try{
+			$guestStatement = $this->sqlCon->prepare('INSERT INTO attendees (eid,guid) VALUES (:eid, :guid)');
+			$guestStatement->bindParam(':eid',$eid,PDO::PARAM_INT);
+			$guestStatement->bindParam(':guid',$guid,PDO::PARAM_INT);
+			$guestStatement->execute();
+			
+			if($guestStatement->rowCount() > 0){
+				return true;
+			}
+		}
+		catch(PDOException $e){
+			logError('Unable to add guest to attendees!',$e->getMessage());
+		}
+		return false;
+	}
+	
+	public function guestIsAttending($guid,$eid){
+		try{
+			$guestStatement = $this->sqlCon->prepare('SELECT 1 FROM attendees WHERE eid=:eid AND guid=:guid');
+			$guestStatement->bindParam(':eid',$eid,PDO::PARAM_INT);
+			$guestStatement->bindParam(':guid',$guid,PDO::PARAM_INT);
+			$guestStatement->execute();
+			
+			if($guestStatement->fetch()){
+				return true;
+			}
+		}
+		catch(PDOException $e){
+			logError('Unable to check if guest is attending event!',$e->getMessage());
+		}
+		return false;
+	}
+	
+	public function getAttendeeCount($eid){
+		try{
+			$countStatement = $this->sqlCon->prepare('SELECT count(*) AS count FROM attendees WHERE eid=:eid');
+			$countStatement->bindParam(':eid',$eid,PDO::PARAM_INT);
+			$countStatement->execute();
+			
+			if(($countVal = $countStatement->fetch(PDO::FETCH_ASSOC)) !== false){
+				return $countVal['count'];
+			}
+		}
+		catch(PDOException $e){
+			logError('Unable to get attendee count!',$e->getMessage());
+		}
+		return false;
+	}
+	
+	
+	/***********************************************************/
+	/* Guest User Methods                                      */
+	/***********************************************************/
+	
+	/*
+	 * Creates a new guest and returns the guest uid.
+	 * $ip: the visitors IP address, for logging.
+	 * returns the gUid, or false on error.
+	 */
+	public function newGuest($ip,$useragent){
+		if(($numRecent = $this->getNumberRecentGuestsByIp($ip,60 * 60 * 24)) > 0){
+			$recent = $this->getRecentGuestByIpAgent($ip,$useragent,60 * 60 * 24);
+			if($recent !== false){
+				return $recent;
+			}
+				
+		}
+
+		if($numRecent <= 20){
+			try{
+				$guestStatement = $this->sqlCon->prepare('INSERT INTO guests (ip,first_time,browser) VALUES (:ip,:time,:ua)');
+				$guestStatement->bindParam(':ip',$ip,PDO::PARAM_STR);
+				$guestStatement->bindValue(':time',$this->getSQLTimeStamp(),PDO::PARAM_STR);
+				$guestStatement->bindValue(':ua',sha1($useragent));
+				$guestStatement->execute();
+				
+				if($guestStatement->rowCount() > 0){
+					$gUid = $this->sqlCon->lastInsertId('guests_guid_seq');
+					if((integer)$gUid > 0){
+						return (integer)$gUid;
+					}
+				}
+			}
+			catch(PDOException $e){
+				logError('Unable to create new guest!',$e->getMessage());
+			}
+		}
+		return false;
+	}
+	
+	/*
+	 * Checks for recent visitations by the given IP within the past $seconds seconds. 
+	 * Returns the guest Uid of the visitor if he/she has visited recently, otherwise false.
+	 */
+	public function getRecentGuestByIpAgent($ip,$useragent,$seconds){
+		try{
+			$guestCheck = $this->sqlCon->prepare('SELECT guid FROM guests WHERE extract(EPOCH FROM (current_timestamp - first_time)::INTERVAL) <= :max AND ip=:ip AND browser=:ua');
+			$guestCheck->bindParam(':max',$seconds,PDO::PARAM_INT);
+			$guestCheck->bindParam(':ip',$ip);
+			$guestCheck->bindValue(':ua',sha1($useragent));
+			$guestCheck->execute();
+			
+			$guest = $guestCheck->fetch(PDO::FETCH_ASSOC);
+			if($guest !== false){
+				return $guest['guid'];
+			}
+		}
+		catch(PDOException $e){
+			logError('Unable to check for recent guest by IP and UserAgent!',$e->getMessage());
+		}
+		return false;
+	}
+	
+	public function getNumberRecentGuestsByIp($ip,$seconds){
+		try{
+			$guestCheck = $this->sqlCon->prepare('SELECT count(guid) AS count FROM guests WHERE extract(EPOCH FROM (current_timestamp - first_time)::INTERVAL) <= :max AND ip=:ip');
+			$guestCheck->bindParam(':max',$seconds,PDO::PARAM_INT);
+			$guestCheck->bindParam(':ip',$ip);
+			$guestCheck->execute();
+			
+			$guest = $guestCheck->fetch(PDO::FETCH_ASSOC);
+			if($guest !== false){
+				return $guest['count'];
+			}
+		}
+		catch(PDOException $e){
+			logError('Unable to check for recent guest by IP!',$e->getMessage());
+		}
+		return 0;
+	}
+	
+	/***********************************************************/
+	/* Database Methods                                        */
+	/***********************************************************/
+	public function beginTransaction(){
+		return $this->sqlCon->beginTransaction();
+	}
+	public function commit(){
+		return $this->sqlCon->commit();
+	}
+	public function rollBack(){
+		return $this->sqlCon->rollBack();
 	}
 }
 ?>

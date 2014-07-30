@@ -1,6 +1,11 @@
 <?php
 define('IS_PRODUCTION',false);
 
+date_default_timezone_set('America/New_York');
+
+ini_set('session.cookie_lifetime', 60 * 60 * 24 * 7);
+ini_set('session.gc_maxlifetime', 60 * 60 * 24 * 7);
+
 define('SITE_LABEL','syncsocial');
 define('SITE_NAME','syncsocial');
 define('SITE_DOMAIN_TOP','syncsocial.local'); //The highest level of the domain of this site. (No subdomains).

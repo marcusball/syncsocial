@@ -35,7 +35,9 @@ class User extends UserRow{
 			} 
 		}
 		else{
-			$this->setUid($this->uid); //Yeah, this is bad, but it's 2am. I'll make this better later
+			if($this->uid !== null){
+				$this->setUid($this->uid); //Yeah, this is bad, but it's 2am. I'll make this better later
+			}
 		}
 	}
 	
